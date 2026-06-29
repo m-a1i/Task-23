@@ -1,0 +1,22 @@
+const mongoose = require('mongoose');
+
+// Admin Schema
+const AdminSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
+});
+
+// Message Schema
+const MessageSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  subject: { type: String, required: true },
+  message: { type: String, required: true },
+  isRead: { type: Boolean, default: false },
+  created_at: { type: Date, default: Date.now }
+});
+
+module.exports = {
+  Admin: mongoose.model('Admin', AdminSchema),
+  Message: mongoose.model('Message', MessageSchema)
+};
