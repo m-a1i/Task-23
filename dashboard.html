@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        body { background: #f4f6f9; display: flex; flex-direction: column; min-height: 100vh; }
+        nav { background: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        nav button { background: #e74c3c; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; }
+        main { padding: 30px; flex: 1; }
+        h1 { margin-bottom: 20px; color: #333; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #555; }
+        tr.unread { font-weight: bold; background: #edf2f7; }
+        .btn-unread { background: #3498db; color: white; }
+        .btn-delete { background: #e74c3c; color: white; }
+        table button { border: none; padding: 6px 12px; margin-right: 5px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h2>Admin Panel</h2>
+        <button onclick="logout()">Logout</button>
+    </nav>
+
+    <main>
+        <h1>Contact Form Submissions</h1>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="message-list"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = '/login.html';
+
+        async function fetchMessages() {
+            const res = await fetch('/api/messages', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.status === 401 || res.status === 403) logout();
+            
+            const messages = await res.json();
+            const list = document.getElementById('message-list');
+            list.innerHTML = '';
+
+            messages.forEach(msg => {
+                const tr = document.createElement('tr');
+                if (!msg.isRead) tr.classList.add('unread');
+                
+                tr.innerHTML = `
+                    <td>${new Date(msg.created_at).toLocaleDateString()}</td>
+                    <td>${msg.name}</td>
+                    <td>${msg.email}</td>
+                    <td>${msg.subject}</td>
+                    <td>${msg.message}</td>
+                    <td>
+                        <button class="btn-unread" onclick="toggleRead('${msg._id}')">${msg.isRead ? 'Mark Unread' : 'Mark Read'}</button>
+                        <button class="btn-delete" onclick="deleteMessage('${msg._id}')">Delete</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+        }
+
+        async function toggleRead(id) {
+            await fetch(`/api/messages/${id}/read`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchMessages();
+        }
+
+        async function deleteMessage(id) {
+            if (!confirm('Delete this message?')) return;
+            await fetch(`/api/messages/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            fetchMessages();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/login.html';
+        }
+
+        fetchMessages();
+    </script>
+</body>
+</html>
